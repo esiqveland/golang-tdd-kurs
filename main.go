@@ -1,15 +1,17 @@
 package main
 
-import(
-  "os"
-  "fmt"
-  "io"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
 )
 
 func main() {
-  testAblePrint(os.Stdout)
+	testAblePrint(os.Stdout)
 }
 
 func testAblePrint(w io.Writer) {
-  fmt.Fprintf(w, "test\n")
+	fmt.Fprintf(w, "test")
 }
+

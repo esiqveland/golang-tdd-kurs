@@ -7,7 +7,7 @@ import (
 )
 
 func TestPrinter(t *testing.T) {
-	expected := []byte("test\n")
+	expected := "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	testAblePrint(buf)
@@ -16,7 +16,8 @@ func TestPrinter(t *testing.T) {
 	if err != nil {
 		t.Errorf("error reading content after print %v", err.Error())
 	}
-	if string(expected) != string(content) {
-		t.Errorf("error expected '%+v' but was '%+v'", expected, content)
+	got := string(content)
+	if expected != got {
+		t.Errorf("error expected '%+s' but was '%+s'", expected, got)
 	}
 }
