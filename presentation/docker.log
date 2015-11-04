@@ -1,0 +1,17 @@
+$ docker build -t bekk/crawler-go .
+Sending build context to Docker daemon 10.34 MB // HLxxx
+Step 0 : FROM scratch
+ ---> 
+Step 1 : ADD crawler.linux /
+ ---> Using cache
+ ---> a5c848e144ce
+Step 2 : ENV PORT 8080
+ ---> Running in 43ca556aa718
+ ---> 8d6a8e451f5f
+Removing intermediate container 43ca556aa718
+Step 3 : CMD /crawler.linux
+ ---> Running in 5022bd065cba
+ ---> ef3112d1c42d
+Removing intermediate container 5022bd065cba
+Successfully built ef3112d1c42d
+

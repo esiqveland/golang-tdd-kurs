@@ -1,0 +1,7 @@
+# Dockerfile
+FROM scratch # Helt clean baseimage!
+
+ADD crawler.linux /
+
+CMD ["/crawler.linux"]
+
