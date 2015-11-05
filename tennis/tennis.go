@@ -19,9 +19,15 @@ type Player interface {
 type Scoreboard interface {
 	Score(playerName string) error
 	Scores() (int, int)
-	Finished() bool
-	Winner() (Player, error)
+	Finished() bool, Player
 	String() string
+}
+
+// scoreboard will implement our Scoreboard interface
+type scoreboard struct {
+	playerA  playerScore
+	playerB  playerScore
+	finished bool
 }
 
 func (p playerScore) Name() string {
@@ -39,8 +45,10 @@ func (s scoreboard) Winner() (Player, error) {
 	return nil, errors.New("Not implemented yet")
 }
 
-func (s scoreboard) Finished() bool {
-	return s.finished
+func (s scoreboard) Finished() (bool, Player) {
+	if s.finished {
+		return true, s.winner()
+	}
 }
 
 func (s scoreboard) Scores() (int, int) {
@@ -57,12 +65,6 @@ func (s *scoreboard) Score(playerName string) error {
 		return nil
 	}
 	return errors.New(fmt.Sprintf("no such player: %v", playerName))
-}
-
-type scoreboard struct {
-	playerA  playerScore
-	playerB  playerScore
-	finished bool
 }
 
 func (s scoreboard) String() string {
