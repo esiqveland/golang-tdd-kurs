@@ -47,12 +47,14 @@ func (s scoreboard) Scores() (int, int) {
 	return s.playerA.score, s.playerB.score
 }
 
-func (s scoreboard) Score(playerName string) error {
+func (s *scoreboard) Score(playerName string) error {
 	if s.playerA.name == playerName {
-
+		s.playerA.score += 15
+		return nil
 	}
 	if s.playerB.name == playerName {
-
+		s.playerB.score += 15
+		return nil
 	}
 	return errors.New(fmt.Sprintf("no such player: %v", playerName))
 }
