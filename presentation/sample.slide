@@ -1,0 +1,262 @@
+Workshop - GO TDT
+Fagdag: Hands On! 
+7 Nov 2015
+Tags: net, http, nsq
+
+Eivind Siqveland Larsen // Thomas Dufourd
+BEKK Consulting AS
+eivind.larsen@bekk.no // thomas.dufourd@bekk.no
+https://github.com/esiqveland
+@EivindSiq
+
+* Introduksjon
+
+Vi skal konsentrere oss om basics:
+
+- Syntax
+- Litt idiomatisk Go
+- Litt om toolchain
+- Tester
+
+* Go
+
+Men først litt om go og økosystemet:
+
+- Veldig åpen struktur der alle pakker bare er en import statement borte: 
+  import “github.com/esiqveland/articler”
+
+
+- I go er det idiomatisk å skrive dokumentasjon i koden din! 
+
+.play exported.go /START OMIT/,/END OMIT/
+
+- Compileren gir warnings om du glemmer å dokumentere public metoder!
+
+* Pekere*
+
+Go har *pekere.
+
+.play pointers.go /START OMIT/,/END OMIT/
+
+* Med peker
+
+.play pointers1.go /START OMIT/,/END OMIT/
+
+* Metoder og pekere
+
+.image pointers2.png
+
+Til venstre: Begge metode receivers får en KOPI av struct-en (T)
+
+Den nede til høyre er ikke tillatt.
+
+* Typer og pekere
+
+.image pointers1.png
+
+
+
+* Tester
+
+Tester er innebygd helt inn i toolchain:
+
+    go test ./...
+
+Kjører alle tester i mappen du står i og undermapper.
+
+Tester skrives i filer som slutter på _test.go:
+
+    main_test.go
+    queue_test.go
+    workers_test.go
+    protocol_test.go
+
+* Tester
+
+.play model_test.go
+
+* Kjøre tester
+
+	go test -v ./...
+	=== RUN   TestValidUser
+	--- FAIL: TestValidUser (0.00s)
+		model_test.go:18: Win should be a valid name, but was not
+	FAIL
+	exit status 1
+	 
+* Hva er statiske binaries?
+
+Statiske binaries er fullstendig pakkede binærfiler der ALT av dependencies er inkludert i en og samme kjørbare fil.
+
+Man får rett og slett en kjørbar blob man kan dumpe hvor som helst!
+
+Dette var etter min mening et sant helvete å få til i C++, og kan ikke gjøres i mange av dagens mest brukte språk.
+
+Tenk deg...
+
+- Ingen depenencies, ingen jvm, ingen C# runtime.
+- Ingen (muterbar) OS config å vedlikeholde! JDK8 anyone?
+- Veldig små images
+
+* Statisk!
+
+Go kompilerer veldig raskt, og kan historisk(!) lett gjøres om til statisk linkede binærfiler:
+
+    CGO_ENABLED=0 GOOS=linux go build -o crawler.linux
+
+Er alt som skal til for å få den statisk kjørbare filen crawler.linux.
+
+    CGO_ENABLED: Whether the cgo command is supported.  Either 0 or 1.
+
+
+Slår av støtte for linking mot C-biblioteker compiletime. Disse kan ikke bygges inn like lett i binærfilen, og man må derfor slå av disse.
+Tenk eksterne .so eller .dll filer som prosjektet er avhengig av compile-/runtime.
+
+    GOOS=linux|darwin|windows: OS man kompilerer for.
+
+Jeg kompilerer her med GOOS=linux fordi vi skal spinne filen opp på en docker container!
+
+* Docker
+
+Docker gir neeeesten VM-level isolerte services mot en mye mer effektiv runtime som egner seg bedre for krav med hyppige bygg og releaser.
+
+Det er fortsatt litt tungt å deploye en helt ny VM image flere ganger daglig og vedlikeholde disse, og bildefilene blir fort veldig store.
+
+Et dockerimage kan også fort bli ganske stort, JDK imaget starter på 600 MB...
+
+* Utopia
+
+.code Dockerfile.scratch
+
+* Eksempelbygg
+
+.code docker.log HLsize
+
+    $ docker images
+    REPOSITORY          TAG       IMAGE ID        CREATED          VIRTUAL SIZE
+    bekk/crawler-go     latest    ef3112d1c42d    3 minutes ago    10.33 MB     # BARE 10 MEGS
+
+* Hello, Web server
+
+.play web1.go
+
+* Handle this! 
+
+  //   typeNavn                 signatur
+  type HandlerFunc func(w http.ResponseWriter, req *http.Request)
+  
+  func handleHello(w http.ResponseWriter, req *http.Request) {
+      log.Println("serving", req.URL)
+      fmt.Fprintln(w, "Hello, world!")
+  }
+
+`http.HandlerFunc` er av typen 
+
+  type HandlerFunc func (w http.ResponseWriter, req *http.Request)
+
+og gjelder alle typer som har denne signaturen.
+
+`handleHello` er av denne typen, og kan derfor brukes i 
+  
+  http.HandleFunc("/", handleHello) 
+
+Men dette er også fryktelig moro, for det betyr at funksjoner er typer de også!
+
+* JSON 
+
+For json har vi i standardliben `encoding/json`:
+
+.play json1.go /START OMIT/,/END OMIT/
+
+* Speak, my friend
+
+.play webjson1.go /START OMIT/,/END OMIT/
+
+* Oppgave 1
+
+Lese inn json data til en struct!
+
+.code request.go
+
+.link https://godoc.org/net/http#Request http.Request
+.link https://godoc.org/encoding/json#NewDecoder json.NewDecoder
+
+* Hint/løsning
+
+.play solution1.go /START OMIT/,/END OMIT/
+
+  curl -X POST -d '{"name": "Eivind"}' http://localhost:7777/message/new  | jq
+
+* Del 2
+
+* NSQ
+aka
+
+- Not Stable Queue
+- Naming Sucks Queue
+- *New* *Simple* *Queue*
+
+Distribuert kø, enkel i bruk. 
+Rent og pent API.
+
+* NSQ Features
+
+Guarantees:
+
+- Messages are not durable (by default)
+
+But can overflow messages to disk (hint: set overflow to 0!) 
+
+- At least once delivery
+- Messages received are un-ordered
+- "Consumers eventually find all topic producers"
+
+This is a consequence/feature in avoiding single point of failure in a distributed fashion
+
+.link https://github.com/nsqio/go-nsq NSQ Go client
+
+* NSQ Helper
+
+.link https://godoc.org/github.com/nsqio/go-nsq#HandlerFunc HandlerFunc type
+.link https://godoc.org/github.com/nsqio/go-nsq#Producer Producer type
+.link https://godoc.org/github.com/nsqio/go-nsq#Consumer Consumer type
+.link https://godoc.org/github.com/nsqio/go-nsq#Consumer.AddHandler Consumer.AddHandler
+
+
+* Oppgave 2: NSQ
+
+* Andre lenker
+
+.link http://open.bekk.no/kom-i-gang-med-go Kom i gang med Go av Henrik Wingerei
+.link https://speakerdeck.com/campoy/things-i-learned-teaching-go Things I learned teaching Go av Francesc Campoy Flores 
+
+* Title of slide or section (must have asterisk)
+
+Some Text
+
+** Subsection
+
+- bullets
+- more bullets
+- a bullet with
+
+*** Sub-subsection
+
+Some More text
+
+  Preformatted text
+  is indented (however you like)
+
+* Other
+
+Further Text, including invocations like:
+
+//.code x.go /^func main/,/^}/
+//.play y.go
+//.image image.jpg
+.iframe http://foo
+.link http://foo label
+//.html file.html
+.caption _Gopher_ by [[http://www.reneefrench.com][Renée French]]
+
+Again, more text
