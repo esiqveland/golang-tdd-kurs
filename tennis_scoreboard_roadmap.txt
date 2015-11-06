@@ -1,0 +1,51 @@
+Features : 
+----------
+I'm the referee. I can press 3 buttons : "Player 1 scored!", "Player 2 scored!", "Actual score ?"
+[TODO : end of game ???]
+
+Implement tennis rules, so we can follow a tennis match and get the score any time.
+
+
+Roadmap : 
+---------
+#1 we need to get used with the language, start by implementing the tennis rules
+ - func(actualScore, player1) --> newScore
+ func({0, 0}, player1) --> {15, 0}
+ func({0, 0}, player2) --> {0, 15}
+ func({40, 40}, player2) --> {40, adv}
+ func({40, adv}, player2) --> 
+
+??? how to use goroutines and channels ????
+---> send a message to some subscribers/write to the console (we can pretend it takes time to send a message), after each point ???
+
+#2 implement an interface
+a_player_scored(player1)
+
+#3 make it talk to the network 
+PUT /tennis/scored?player=player1 | PUT /tennis/scored?player=player2
+GET /tennis/score
+
+
+
+
+
+
+Tennis rules
+------------
+1. Each player can have either of these points in one game 0 15 30 40
+
+2. If you have 40 and you win the ball you win the game, however there are special rules.
+
+3. If both have 40 the players are deuce. 
+ a. If the game is in deuce, the winner of a ball will have advantage and game ball. 
+ b. If the player with advantage wins the ball he wins the game 
+ c. If the player without advantage wins they are back at deuce.
+
+Alt 1: 
+4. First player wining a game, wins the match. 
+
+
+Alt 2: 
+4. Set is won after 6 games won (with a difference of 2 games). No tie-break.
+
+5. First player wining a set, wins the match. 
