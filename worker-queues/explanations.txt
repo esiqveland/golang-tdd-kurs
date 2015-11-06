@@ -1,0 +1,105 @@
+
+A collector is going to be responsible for receiving work requests, and adding them to the work queue.
+
+The work queue is, in Go terms, a buffered channel, which just lets work requests collect. The work queue is buffered, so that we do not block the collector.
+
+Our dispatcher are responsible for pulling work requests off of the queue, and distributing them to the next available worker. To keep things clear, and voodoo-free, we are going to have our dispatcher maintain several queues, the first of which, being the worker queue.
+
+The worker queue is the weirdest part about all of this (if you are not familiar with Go, and maybe, even if you are). It is a buffered channel of channels. The channels that go into this channel, are what the workers use to receive the work request. If this does not make sense now, it probably will as we implement the system.
+
+Lastly, workers are responsible for performing a unit of work. In our examples, we are going to make workers responsible for letting the dispatcher know when they are ready to accept more work.
+
+
+work.go
+-------
+WorkRequest 
+ - Name
+ - Duration
+
+
+collector.go
+------------
+// Defines a buffered channel that we can send work requests on.
+var WorkQueue = make(chan WorkRequest, 100)
+
+// its only method is :
+func Collector(w http.ResponseWriter, r *http.Request) {
+  // check we get a POST
+  // extract Name and Duration from request
+  
+  // create a new WorkRequest 
+  work := WorkRequest{Name: name, Delay: delay}
+  
+  // Push the work onto the queue.
+  WorkQueue <- work
+
+  // sends a response into the ResponseWriter -- 401 created
+}
+
+OBS : 
+
+    The buffer size of the channel is completely arbitrary, but you want to set it high enough so that sending work requests over it does not fill up, and block the send operation: WorkQueue <- work.
+
+
+worker.go
+---------
+The worker needs to have a channel of its own that the dispatcher (which we will implement next) can use to give the worker a WorkRequest. We are also going to give our workers a numeric ID, so that we can see which worker is performing the work.
+
+type Worker struct {
+  ID          int
+  Work        chan WorkRequest
+  WorkerQueue chan chan WorkRequest
+  QuitChan    chan bool
+}
+
+
+// This function "starts" the worker by starting a goroutine, that is
+// an infinite "for-select" loop.
+func (w Worker) Start() {
+    go func() {
+      for {
+        // Add ourselves into the worker queue.
+        w.WorkerQueue <- w.Work
+        
+        select {
+        case work := <-w.Work:
+          // Receive a work request.
+          fmt.Printf("worker%d: Received work request, delaying for %f seconds\n", w.ID, work.Delay.Seconds())
+          
+          time.Sleep(work.Delay)
+          fmt.Printf("worker%d: Hello, %s!\n", w.ID, work.Name)
+          
+        case <-w.QuitChan:
+          // We have been asked to stop.
+          fmt.Printf("worker%d stopping\n", w.ID)
+          return
+        }
+      }
+    }()
+}
+
+// Stop tells the worker to stop listening for work requests.
+//
+// Note that the worker will only stop *after* it has finished its work.
+func (w Worker) Stop() {
+  go func() {
+    w.QuitChan <- true
+  }()
+}
+
+
+
+dispatcher.go
+-------------
+// declare a channel of channels of type WorkRequest
+var WorkerQueue chan chan WorkRequest 
+
+func StartDispatcher(nworkers int) {
+  // First, initialize the channel we are going to put the workers' work channels into.
+  WorkerQueue = make(chan chan WorkRequest, nworkers)
+  
+
+
+
+
+
