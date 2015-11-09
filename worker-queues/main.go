@@ -21,7 +21,12 @@ func main() {
 
   // Register our collector as an HTTP handler function.
   fmt.Println("Registering the collector")
+
   http.HandleFunc("/work", Collector)
+  http.HandleFunc("/work2", func(w http.ResponseWriter, req *http.Request) {
+
+  } )
+
 
   // Start the HTTP server!
   fmt.Println("HTTP server listening on", *HTTPAddr)
